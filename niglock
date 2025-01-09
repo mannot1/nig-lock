@@ -1,0 +1,39 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local mouse = player:GetMouse()
+local holdingR = false
+
+-- Function to update character rotation
+local function updateCharacterRotation()
+    if holdingR then
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            -- Get mouse's 3D position and calculate direction
+            local mousePosition = mouse.Hit.Position
+            local direction = (mousePosition - rootPart.Position).unit
+            
+            -- Calculate the vertical and horizontal angles
+            local lookVector = Vector3.new(direction.X, direction.Y, direction.Z)
+            rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
+        end
+    end
+end
+
+-- Detect when "R" is pressed and held
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.R then
+        holdingR = true
+    end
+end)
+
+-- Detect when "R" is released
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.R then
+        holdingR = false
+    end
+end)
+
+-- Update the character's facing direction during the "R" hold
+RunService.RenderStepped:Connect(updateCharacterRotation)
