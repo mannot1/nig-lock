@@ -1,29 +1,61 @@
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local mouse = player:GetMouse()
+
 local holdingR = false
+
+-- Function to get mouse world position with filtering
+local function getMouseTargetPosition()
+    local camera = Workspace.CurrentCamera
+    local unitRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {character} -- ignore your own character
+    raycastParams.IgnoreWater = true
+
+    -- shoot ray far into distance
+    local result = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+
+    if result then
+        local hitPart = result.Instance
+        -- ignore invisible walls
+        if hitPart.Transparency < 1 and hitPart.CanCollide then
+            return result.Position
+        else
+            -- if it's invisible, just keep going forward
+            return unitRay.Origin + unitRay.Direction * 100
+        end
+    else
+        -- nothing hit, just project forward
+        return unitRay.Origin + unitRay.Direction * 100
+    end
+end
 
 -- Function to update character rotation
 local function updateCharacterRotation()
     if holdingR then
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            -- Get mouse's 3D position and calculate direction
-            local mousePosition = mouse.Hit.Position
-            local direction = (mousePosition - rootPart.Position).unit
-            
-            -- Calculate the vertical and horizontal angles
-            local lookVector = Vector3.new(direction.X, direction.Y, direction.Z)
-            rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
+            local mousePosition = getMouseTargetPosition()
+            local direction = (mousePosition - rootPart.Position).Unit
+
+            -- Flatten Y if you don’t want vertical tilt (optional)
+            -- direction = Vector3.new(direction.X, 0, direction.Z).Unit
+
+            rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + direction)
         end
     end
 end
 
 -- Detect when "R" is pressed and held
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.R then
+UserInputService.InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.R then
         holdingR = true
     end
 end)
